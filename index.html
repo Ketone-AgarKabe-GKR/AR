@@ -10,16 +10,22 @@
 </head>
 <body>
 
-    <!-- IMAGE STAGE -->
     <div id="stage">
 
-        <img
-            id="traceImage"
-            draggable="false"
-            alt="Tracing Reference"
-        >
+    <video
+        id="cameraFeed"
+        autoplay
+        playsinline
+        muted
+    ></video>
 
-    </div>
+    <img
+        id="traceImage"
+        draggable="false"
+        alt="Tracing Reference"
+    >
+
+</div>
 
     <!-- FLOATING CONTROL PANEL -->
     <div id="controlPanel">
@@ -155,6 +161,18 @@
 
             <div class="section">
 
+                <button id="startCameraBtn">
+                    📷 Start Camera
+                </button>
+
+                <button id="stopCameraBtn">
+                    📷 Stop Camera
+                </button>
+
+            </div>
+
+            <div class="section">
+
                 <button id="traceModeBtn">
                     ✏ Trace Mode
                 </button>
@@ -166,6 +184,8 @@
                 <button id="resetBtn">
                     ↺ Reset
                 </button>
+
+            </div>
 
             </div>
 

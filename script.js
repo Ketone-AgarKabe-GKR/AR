@@ -4,6 +4,15 @@
 
 const traceImage = document.getElementById("traceImage");
 
+const cameraFeed =
+document.getElementById("cameraFeed");
+
+const startCameraBtn =
+document.getElementById("startCameraBtn");
+
+const stopCameraBtn =
+document.getElementById("stopCameraBtn");
+
 const imageInput = document.getElementById("imageInput");
 
 const removeBtn = document.getElementById("removeBtn");
@@ -901,3 +910,74 @@ function loadPanelPosition(){
 loadPanelPosition();
 
 updatePanelPosition();
+
+// =========================
+// CAMERA
+// =========================
+
+let cameraStream = null;
+
+startCameraBtn.addEventListener(
+    "click",
+    async () => {
+
+        try{
+
+            cameraStream =
+                await navigator
+                .mediaDevices
+                .getUserMedia({
+
+                    video:{
+                        facingMode:{
+                            ideal:"environment"
+                        }
+                    }
+
+                });
+
+            cameraFeed.srcObject =
+                cameraStream;
+
+            showToast(
+                "Camera Started"
+            );
+
+        }
+        catch(err){
+
+            console.error(err);
+
+            showToast(
+                "Camera Failed"
+            );
+        }
+
+    }
+);
+
+stopCameraBtn.addEventListener(
+    "click",
+    () => {
+
+        if(!cameraStream)
+            return;
+
+        cameraStream
+            .getTracks()
+            .forEach(
+                track =>
+                track.stop()
+            );
+
+        cameraFeed.srcObject =
+            null;
+
+        cameraStream = null;
+
+        showToast(
+            "Camera Stopped"
+        );
+
+    }
+);

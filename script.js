@@ -126,21 +126,31 @@ function updateStatusBar(){
 }
 
 // =========================
-// IMAGE TRANSFORM
+// IMAGE TRANSFORM (OPTIMIZED)
 // =========================
+
+let isRenderPending = false;
 
 function updateImage(){
 
     if(!state.imageLoaded) return;
+    
+    if(!isRenderPending) {
+        isRenderPending = true;
+        
+        requestAnimationFrame(() => {
+            traceImage.style.opacity =
+                state.opacity / 100;
 
-    traceImage.style.opacity =
-        state.opacity / 100;
-
-    traceImage.style.transform = `
-        translate(${state.x}px, ${state.y}px)
-        scale(${state.scale})
-        rotate(${state.rotation}deg)
-    `;
+            traceImage.style.transform = `
+                translate(${state.x}px, ${state.y}px)
+                scale(${state.scale})
+                rotate(${state.rotation}deg)
+            `;
+            
+            isRenderPending = false;
+        });
+    }
 }
 
 // =========================
@@ -489,110 +499,30 @@ document.getElementById("minimizeBtn");
 
 // =========================
 // PANEL STATE
+// (Removed X/Y coordinates as Island is fixed to top center)
 // =========================
 
-let panelX = 20;
-let panelY = 20;
-
-let panelDragging = false;
-
-let panelStartX = 0;
-let panelStartY = 0;
-
 // =========================
-// IMAGE DRAGGING
+// IMAGE DRAGGING & MULTI-TOUCH
 // =========================
 
-let imageDragging = false;
+let activePointers = new Map();
+let lastCentroid = { x: 0, y: 0 };
 
-let imageStartX = 0;
-let imageStartY = 0;
-
-// =========================
-// PANEL POSITION
-// =========================
-
-function updatePanelPosition(){
-
-    controlPanel.style.left =
-        panelX + "px";
-
-    controlPanel.style.top =
-        panelY + "px";
+function getCentroid(pointersMap) {
+    let x = 0, y = 0;
+    pointersMap.forEach(pointer => {
+        x += pointer.clientX;
+        y += pointer.clientY;
+    });
+    return {
+        x: x / pointersMap.size,
+        y: y / pointersMap.size
+    };
 }
 
-// =========================
-// PANEL DRAG
-// =========================
-
-panelHeader.addEventListener(
-    "mousedown",
-    e => {
-
-        if(state.panelLocked)
-            return;
-
-        panelDragging = true;
-
-        panelStartX =
-            e.clientX - panelX;
-
-        panelStartY =
-            e.clientY - panelY;
-    }
-);
-
-document.addEventListener(
-    "mousemove",
-    e => {
-
-        if(panelDragging){
-
-            panelX =
-                e.clientX -
-                panelStartX;
-
-            panelY =
-                e.clientY -
-                panelStartY;
-
-            updatePanelPosition();
-        }
-
-        if(imageDragging){
-
-            state.x =
-                e.clientX -
-                imageStartX;
-
-            state.y =
-                e.clientY -
-                imageStartY;
-
-            updateImage();
-        }
-
-    }
-);
-
-document.addEventListener(
-    "mouseup",
-    () => {
-
-        panelDragging = false;
-        imageDragging = false;
-
-        savePanelPosition();
-
-    }
-);
-
-// =========================
-// IMAGE DRAG
-// =========================
-
 traceImage.addEventListener(
-    "mousedown",
+    "pointerdown",
     e => {
 
         if(state.imageLocked)
@@ -601,15 +531,50 @@ traceImage.addEventListener(
         if(!state.imageLoaded)
             return;
 
-        imageDragging = true;
-
-        imageStartX =
-            e.clientX - state.x;
-
-        imageStartY =
-            e.clientY - state.y;
+        activePointers.set(e.pointerId, e);
+        traceImage.setPointerCapture(e.pointerId);
+        
+        lastCentroid = getCentroid(activePointers);
     }
 );
+
+document.addEventListener(
+    "pointermove",
+    e => {
+
+        if(activePointers.has(e.pointerId)) {
+            
+            activePointers.set(e.pointerId, e);
+            
+            const currentCentroid = getCentroid(activePointers);
+            
+            state.x += (currentCentroid.x - lastCentroid.x);
+            state.y += (currentCentroid.y - lastCentroid.y);
+            
+            lastCentroid = currentCentroid;
+            
+            updateImage();
+        }
+
+    }
+);
+
+const releasePointer = e => {
+    
+    if(activePointers.has(e.pointerId)) {
+        
+        activePointers.delete(e.pointerId);
+        
+        if(activePointers.size === 0) {
+            saveState();
+        } else {
+            lastCentroid = getCentroid(activePointers);
+        }
+    }
+};
+
+document.addEventListener("pointerup", releasePointer);
+document.addEventListener("pointercancel", releasePointer);
 
 // =========================
 // MOUSE WHEEL ZOOM
@@ -741,13 +706,20 @@ rotationLockBtn.addEventListener(
     }
 );
 
-// =========================
-// MINIMIZE PANEL
+/// =========================
+// MINIMIZE PANEL (Dynamic Island Logic)
 // =========================
 
 minimizeBtn.addEventListener(
     "click",
-    () => {
+    (e) => {
+        
+        e.stopPropagation();
+
+        if(state.panelLocked) {
+            showToast("Panel is Locked Open");
+            return;
+        }
 
         controlPanel.classList.add(
             "minimized"
@@ -759,6 +731,7 @@ minimizeBtn.addEventListener(
     }
 );
 
+// Backup Toggle Button just in case
 panelToggle.addEventListener(
     "click",
     () => {
@@ -773,6 +746,82 @@ panelToggle.addEventListener(
     }
 );
 
+// =========================
+// DYNAMIC ISLAND DRAG & CLICK LOGIC
+// =========================
+
+let panelX = window.innerWidth / 2 - 70; // Starts centered horizontally
+let panelY = 20;
+let isPanelDragging = false;
+let hasDragged = false;
+let panelStartX = 0;
+let panelStartY = 0;
+
+// Set initial position
+controlPanel.style.left = panelX + "px";
+controlPanel.style.top = panelY + "px";
+
+panelHeader.addEventListener("pointerdown", e => {
+    
+    // NEW: Ignore the drag if you are clicking a button (Minimize or Lock)
+    if(e.target.closest('.headerButtons')) return;
+
+    if(state.panelLocked) return;
+    
+    isPanelDragging = true;
+    hasDragged = false; // Reset drag tracker
+    panelHeader.setPointerCapture(e.pointerId);
+
+    panelStartX = e.clientX - panelX;
+    panelStartY = e.clientY - panelY;
+});
+panelHeader.addEventListener("pointermove", e => {
+    
+    if(!isPanelDragging) return;
+
+    const newX = e.clientX - panelStartX;
+    const newY = e.clientY - panelStartY;
+
+    // If the finger moved more than 4 pixels, it's a drag, not a tap
+    if (Math.abs(newX - panelX) > 4 || Math.abs(newY - panelY) > 4) {
+        hasDragged = true;
+    }
+
+    panelX = newX;
+    panelY = newY;
+
+    controlPanel.style.left = panelX + "px";
+    controlPanel.style.top = panelY + "px";
+});
+
+panelHeader.addEventListener("pointerup", e => {
+    
+    isPanelDragging = false;
+    panelHeader.releasePointerCapture(e.pointerId);
+
+    // If we just tapped (didn't drag), expand the island!
+    if (!hasDragged) {
+        if (controlPanel.classList.contains("minimized")) {
+            controlPanel.classList.remove("minimized");
+            panelToggle.style.display = "none";
+        }
+    }
+    
+    // Save position so it remembers where you put it
+    localStorage.setItem("tracear-panel", JSON.stringify({ x: panelX, y: panelY }));
+});
+
+// Load saved position on startup
+const savedPanel = localStorage.getItem("tracear-panel");
+if(savedPanel) {
+    try {
+        const pos = JSON.parse(savedPanel);
+        panelX = pos.x;
+        panelY = pos.y;
+        controlPanel.style.left = panelX + "px";
+        controlPanel.style.top = panelY + "px";
+    } catch(e) {}
+}
 // =========================
 // TRACE MODE
 // =========================
@@ -855,61 +904,34 @@ fullscreenBtn.addEventListener(
 );
 
 // =========================
-// PANEL SAVE
+// PRECISION D-PAD
 // =========================
 
-function savePanelPosition(){
+const nudgeSpeed = 12;
 
-    localStorage.setItem(
-        "tracear-panel",
-        JSON.stringify({
-            x:panelX,
-            y:panelY
-        })
-    );
-
+function nudgeImage(dx, dy) {
+    if(state.imageLocked) return;
+    if(!state.imageLoaded) return;
+    
+    state.x += dx;
+    state.y += dy;
+    
+    updateImage();
+    saveState();
 }
 
-// =========================
-// PANEL LOAD
-// =========================
-
-function loadPanelPosition(){
-
-    const saved =
-        localStorage.getItem(
-            "tracear-panel"
-        );
-
-    if(!saved)
-        return;
-
-    try{
-
-        const pos =
-            JSON.parse(saved);
-
-        panelX = pos.x;
-        panelY = pos.y;
-
-        updatePanelPosition();
-
-    }
-    catch(err){
-
-        console.error(err);
-
-    }
-
-}
-
-// =========================
-// START PANEL
-// =========================
-
-loadPanelPosition();
-
-updatePanelPosition();
+document.getElementById("nudgeUp").addEventListener(
+    "click", () => nudgeImage(0, -nudgeSpeed)
+);
+document.getElementById("nudgeDown").addEventListener(
+    "click", () => nudgeImage(0, nudgeSpeed)
+);
+document.getElementById("nudgeLeft").addEventListener(
+    "click", () => nudgeImage(-nudgeSpeed, 0)
+);
+document.getElementById("nudgeRight").addEventListener(
+    "click", () => nudgeImage(nudgeSpeed, 0)
+);
 
 // =========================
 // CAMERA
@@ -981,3 +1003,8 @@ stopCameraBtn.addEventListener(
 
     }
 );
+
+// Restore UI lock states on load
+if(state.panelLocked) panelLockBtn.classList.add("active-lock");
+if(state.imageLocked) imageLockBtn.classList.add("active-lock");
+if(state.rotationLocked) rotationLockBtn.classList.add("active-lock");

@@ -76,19 +76,26 @@ body{
     z-index:2;
 
     display:none;
+
+    /* OPTIMIZATION: Hardware acceleration */
+    will-change: transform, opacity;
 }
 
 /* ==========================
-   FLOATING PANEL
+   FLOATING PANEL (Dynamic Island)
 ========================== */
 
 #controlPanel{
     position:fixed;
 
+    /* Changed to center the Island */
     top:20px;
-    left:20px;
+    left:50%;
+    transform: translateX(-50%);
 
     width:300px;
+    height: auto;
+    max-height: 85vh;
 
     z-index:1000;
 
@@ -106,8 +113,11 @@ body{
 
     overflow:hidden;
 
+    /* Smooth island morphing transitions */
     transition:
-        transform .25s ease,
+        width .3s cubic-bezier(0.2, 0.8, 0.2, 1),
+        max-height .3s cubic-bezier(0.2, 0.8, 0.2, 1),
+        border-radius .3s ease,
         opacity .25s ease;
 }
 
@@ -123,16 +133,11 @@ body{
 
     padding:14px 16px;
 
-    cursor:grab;
-
+    /* Cursor removed since it's an island now, not draggable */
     font-weight:600;
 
     border-bottom:
         1px solid rgba(255,255,255,.08);
-}
-
-#panelHeader:active{
-    cursor:grabbing;
 }
 
 .headerButtons{
@@ -262,6 +267,39 @@ input[type="range"]{
 }
 
 /* ==========================
+   PRECISION D-PAD
+========================== */
+
+#dpad {
+    position: fixed;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    
+    /* Changed from Grid to Flexbox for a vertical line */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    
+    z-index: 950;
+}
+
+.dpad-btn {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+    border-radius: 50%;
+    background: rgba(20, 20, 25, 0.6);
+    backdrop-filter: blur(12px);
+    font-size: 14px;
+}
+
+#nudgeUp { grid-area: up; }
+#nudgeLeft { grid-area: left; }
+#nudgeRight { grid-area: right; }
+#nudgeDown { grid-area: down; }
+
+/* ==========================
    PANEL TOGGLE
 ========================== */
 
@@ -365,10 +403,32 @@ input[type="range"]{
 }
 
 /* ==========================
-   MINIMIZED PANEL
+   MINIMIZED PANEL (Dynamic Island Pill)
 ========================== */
 
-.minimized #panelContent{
+/* Converted to Island shape */
+#controlPanel.minimized {
+    width: 140px;
+    max-height: 48px;
+    border-radius: 25px;
+    cursor: pointer;
+}
+
+#controlPanel.minimized:hover {
+    background: rgba(30,30,35,0.9);
+}
+
+#controlPanel.minimized #panelHeader {
+    justify-content: center;
+    border-bottom: none;
+    padding: 14px 16px;
+}
+
+#controlPanel.minimized .headerButtons {
+    display: none;
+}
+
+#controlPanel.minimized #panelContent{
     display:none;
 }
 
@@ -376,11 +436,13 @@ input[type="range"]{
    TRACE MODE
 ========================== */
 
-.trace-mode #controlPanel{
+.trace-mode #controlPanel,
+.trace-mode #dpad {
     opacity:.15;
 }
 
-.trace-mode #controlPanel:hover{
+.trace-mode #controlPanel:hover,
+.trace-mode #dpad:hover {
     opacity:1;
 }
 
@@ -418,10 +480,10 @@ input[type="range"]{
 
     #controlPanel{
 
-        width:260px;
+        width:90%; /* Adapts Island to phone screen */
 
         top:12px;
-        left:12px;
+        /* Left 50% remains from global config to keep it centered */
     }
 
 }

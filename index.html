@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+    <title>TraceAR</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- IMAGE STAGE -->
+    <div id="stage">
+
+        <img
+            id="traceImage"
+            draggable="false"
+            alt="Tracing Reference"
+        >
+
+    </div>
+
+    <!-- FLOATING CONTROL PANEL -->
+    <div id="controlPanel">
+
+        <div id="panelHeader">
+
+            <span>TraceAR</span>
+
+            <div class="headerButtons">
+
+                <button id="panelLockBtn" title="Lock Panel">
+                    📌
+                </button>
+
+                <button id="minimizeBtn" title="Minimize">
+                    —
+                </button>
+
+            </div>
+
+        </div>
+
+        <div id="panelContent">
+
+            <!-- IMAGE -->
+
+            <div class="section">
+
+                <label class="uploadBtn">
+
+                    Upload
+
+                    <input
+                        type="file"
+                        id="imageInput"
+                        accept="image/*"
+                        hidden
+                    >
+
+                </label>
+
+                <button id="removeBtn">
+                    Remove
+                </button>
+
+            </div>
+
+            <!-- OPACITY -->
+
+            <div class="section">
+
+                <label>
+
+                    Opacity
+
+                    <input
+                        type="range"
+                        id="opacitySlider"
+                        min="5"
+                        max="100"
+                        value="40"
+                    >
+
+                </label>
+
+            </div>
+
+            <!-- SCALE -->
+
+            <div class="section">
+
+                <label>
+
+                    Scale
+
+                    <input
+                        type="range"
+                        id="scaleSlider"
+                        min="10"
+                        max="1000"
+                        value="100"
+                    >
+
+                </label>
+
+            </div>
+
+            <!-- ROTATION -->
+
+            <div class="section">
+
+                <div class="rotationControls">
+
+                    <button id="rotateLeft1">
+                        ↺1°
+                    </button>
+
+                    <button id="rotateRight1">
+                        ↻1°
+                    </button>
+
+                </div>
+
+                <div class="rotationControls">
+
+                    <button id="rotateLeft15">
+                        ↺15°
+                    </button>
+
+                    <button id="rotateRight15">
+                        ↻15°
+                    </button>
+
+                </div>
+
+            </div>
+
+            <!-- LOCKS -->
+
+            <div class="section">
+
+                <button id="imageLockBtn">
+                    🔒 Image Lock
+                </button>
+
+                <button id="rotationLockBtn">
+                    🌍 Rotation Lock
+                </button>
+
+            </div>
+
+            <!-- ACTIONS -->
+
+            <div class="section">
+
+                <button id="traceModeBtn">
+                    ✏ Trace Mode
+                </button>
+
+                <button id="fullscreenBtn">
+                    ⛶ Fullscreen
+                </button>
+
+                <button id="resetBtn">
+                    ↺ Reset
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- COLLAPSED PANEL BUTTON -->
+
+    <button id="panelToggle">
+
+        ☰
+
+    </button>
+
+    <!-- STATUS BAR -->
+
+    <div id="statusBar">
+
+        <span id="statusImageLock">
+            🔒 OFF
+        </span>
+
+        <span id="statusPanelLock">
+            📌 OFF
+        </span>
+
+        <span id="statusRotationLock">
+            🌍 OFF
+        </span>
+
+        <span id="statusOpacity">
+            40%
+        </span>
+
+    </div>
+
+    <!-- TOAST -->
+
+    <div id="toast">
+
+        Ready
+
+    </div>
+
+    <script src="script.js"></script>
+
+</body>
+</html>
